@@ -74,6 +74,16 @@ type OpEntry struct {
 
 	// Power computes power (magnitude squared) from separate real and imaginary parts: dst[i] = re[i]^2 + im[i]^2.
 	Power func(dst, re, im []float64)
+
+	// GenerateTPDF fills dst with TPDF noise: dst[i] = tpdf_noise * scale.
+	// Uses a 256-byte circular buffer PRNG (field) with additive feedback.
+	// pos is the current index (0-63) into the field. Returns the new pos.
+	GenerateTPDF func(dst []float64, scale float64, field *[64]uint32, pos int) int
+
+	// AddDitherTPDF adds TPDF noise to dst: dst[i] += tpdf_noise * scale.
+	// Uses a 256-byte circular buffer PRNG (field) with additive feedback.
+	// pos is the current index (0-63) into the field. Returns the new pos.
+	AddDitherTPDF func(dst []float64, scale float64, field *[64]uint32, pos int) int
 }
 
 // OpRegistry manages the registration and lookup of vecmath implementation variants.

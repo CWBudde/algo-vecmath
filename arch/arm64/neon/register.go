@@ -40,5 +40,9 @@ func init() {
 		// Spectrum operations
 		Magnitude: Magnitude,
 		Power:     Power,
+
+		// Dither operations
+		GenerateTPDF:  GenerateTPDF,
+		AddDitherTPDF: AddDitherTPDF,
 	})
 }
