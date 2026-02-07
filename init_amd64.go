@@ -1,0 +1,16 @@
+//go:build amd64 && !purego
+
+package vecmath
+
+// This file imports amd64-specific implementation packages to trigger
+// their init() functions, which register implementations with the global registry.
+
+import (
+	// AMD64 implementations
+	_ "github.com/cwbudde/algo-vecmath/arch/amd64/avx2"
+	_ "github.com/cwbudde/algo-vecmath/arch/amd64/sse2"
+	// Generic implementations (pure Go fallback)
+	_ "github.com/cwbudde/algo-vecmath/arch/generic"
+	// Import registry package
+	_ "github.com/cwbudde/algo-vecmath/internal/registry"
+)
