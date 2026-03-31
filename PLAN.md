@@ -76,6 +76,74 @@ Goal: Port a _small_ set of high-value kernels from `mfw/legacy/Source/ASM/` int
 
 ---
 
+### 5. Modal/Quadrature Oscillator Kernels (for `algo-dsp` + `algo-piano`)
+
+Goal: provide SIMD-ready primitives for damped complex-rotator banks used by modal synthesis.
+
+- [ ] Add scalar reference kernels (generic backend) for complex rotation + decay updates.
+- [ ] Add `float32`-first APIs (realtime synthesis hot path), with optional `float64` counterparts where useful.
+- [ ] Finalize and document SIMD-friendly memory layout (default SoA):
+  - [ ] `re[]`, `im[]`, `cosW[]`, `sinW[]`, `decay[]`, optional `gain[]`
+  - [ ] Optional adapter helpers for interleaved layouts if callers require them.
+- [ ] Implement architecture backends:
+  - [ ] amd64 AVX2
+  - [ ] amd64 SSE2 fallback
+  - [ ] arm64 NEON
+- [ ] Add fused helper kernels needed by modal-bank loops (e.g. rotate+decay+accumulate variants) if profiling justifies them.
+- [ ] Add parity/stress tests:
+  - [ ] Random vectors vs scalar reference
+  - [ ] Long-tail decay stability / denormal behavior
+  - [ ] NaN/Inf propagation policy documented and tested
+- [ ] Add focused benchmarks for modal sizes (8/16/24/32 modes, block size 128 and 256).
+- [ ] Publish recommended calling pattern for integration in `algo-dsp`.
+
+Suggested API sketch (to finalize during implementation):
+
+```go
+// Rotates and damps a bank of complex oscillators in place.
+func RotateDecayComplexF32(re, im, cosW, sinW, decay []float32)
+
+// Optional fused variant: updates state and accumulates weighted real part.
+func RotateDecayAccumulateF32(dst []float32, re, im, cosW, sinW, decay, gain []float32)
+```
+
+### 5.1 Concrete issue backlog (modal/quadrature kernels)
+
+These tickets are intended to be executed before `algo-dsp` lands the high-level modal oscillator package.
+
+- [ ] `VEC-301` — Add scalar reference kernels for complex rotate+decay (`float32`).
+  - Scope: generic backend kernels for SoA arrays (`re`, `im`, `cosW`, `sinW`, `decay`).
+  - Acceptance: deterministic reference tests and API docs.
+  - Depends on: none.
+- [ ] `VEC-302` — Add `RotateDecayComplexF32` public API.
+  - Scope: in-place update API with strict length/aliasing checks.
+  - Acceptance: parity vs `VEC-301` across random and edge-case vectors.
+  - Depends on: `VEC-301`.
+- [ ] `VEC-303` — Add fused accumulate API (`RotateDecayAccumulateF32`).
+  - Scope: update state and accumulate weighted real-part contribution.
+  - Acceptance: parity tests vs scalar composition; zero allocations.
+  - Depends on: `VEC-302`.
+- [ ] `VEC-304` — amd64 AVX2 backend for rotate/accumulate kernels.
+  - Scope: assembly-backed or vectorized backend for AVX2 path.
+  - Acceptance: microbench speedup vs generic on AVX2 machine; parity tests pass.
+  - Depends on: `VEC-302`, `VEC-303`.
+- [ ] `VEC-305` — amd64 SSE2 fallback backend for rotate/accumulate kernels.
+  - Scope: SSE2 implementation for non-AVX2 amd64 targets.
+  - Acceptance: parity tests pass; benchmark shows non-regression vs generic.
+  - Depends on: `VEC-302`, `VEC-303`.
+- [ ] `VEC-306` — arm64 NEON backend for rotate/accumulate kernels.
+  - Scope: NEON implementation for arm64 targets.
+  - Acceptance: parity tests pass; benchmark speedup on arm64 NEON.
+  - Depends on: `VEC-302`, `VEC-303`.
+- [ ] `VEC-307` — Modal-kernel benchmark matrix + baselines.
+  - Scope: benchmark suite for modal sizes 8/16/24/32 and block 128/256.
+  - Acceptance: baseline table committed (Go version, CPU, date).
+  - Depends on: `VEC-302`.
+- [ ] `VEC-308` — Long-tail stability / denormal behavior tests.
+  - Scope: long-run decay tests with denormal-sensitive tails.
+  - Acceptance: no NaN/Inf regressions and documented denormal behavior.
+  - Depends on: `VEC-302`.
+
 ## Exit Criteria
 
 - [ ] No major regressions in allocations/op on key hot paths.
