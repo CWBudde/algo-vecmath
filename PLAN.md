@@ -14,11 +14,12 @@ It provides element-wise arithmetic, fused operations, and reductions with archi
 
 ### Implemented
 
-- **12 public functions** across 5 categories:
+- **14 public functions** across 6 categories:
   - Arithmetic: `AddBlock`, `AddBlockInPlace`, `MulBlock`, `MulBlockInPlace`, `ScaleBlock`, `ScaleBlockInPlace`
   - Fused: `AddMulBlock`, `MulAddBlock`
   - Reductions: `Sum`, `DotProduct`, `MaxAbs`
   - Spectral: `Magnitude`, `Power`
+  - Modal oscillator (float32, generic backend only): `RotateDecayComplexF32`, `RotateDecayAccumulateF32`
 - **4 architecture backends** with Go Plan 9 assembly:
   - `arch/amd64/avx2` (priority 20) -- 4x float64 per instruction
   - `arch/amd64/sse2` (priority 10) -- 2x float64 per instruction
@@ -111,15 +112,15 @@ func RotateDecayAccumulateF32(dst []float32, re, im, cosW, sinW, decay, gain []f
 
 These tickets are intended to be executed before `algo-dsp` lands the high-level modal oscillator package.
 
-- [ ] `VEC-301` — Add scalar reference kernels for complex rotate+decay (`float32`).
+- [x] `VEC-301` — Add scalar reference kernels for complex rotate+decay (`float32`).
   - Scope: generic backend kernels for SoA arrays (`re`, `im`, `cosW`, `sinW`, `decay`).
   - Acceptance: deterministic reference tests and API docs.
   - Depends on: none.
-- [ ] `VEC-302` — Add `RotateDecayComplexF32` public API.
+- [x] `VEC-302` — Add `RotateDecayComplexF32` public API.
   - Scope: in-place update API with strict length/aliasing checks.
   - Acceptance: parity vs `VEC-301` across random and edge-case vectors.
   - Depends on: `VEC-301`.
-- [ ] `VEC-303` — Add fused accumulate API (`RotateDecayAccumulateF32`).
+- [x] `VEC-303` — Add fused accumulate API (`RotateDecayAccumulateF32`).
   - Scope: update state and accumulate weighted real-part contribution.
   - Acceptance: parity tests vs scalar composition; zero allocations.
   - Depends on: `VEC-302`.

@@ -84,6 +84,18 @@ type OpEntry struct {
 	// Uses a 256-byte circular buffer PRNG (field) with additive feedback.
 	// pos is the current index (0-63) into the field. Returns the new pos.
 	AddDitherTPDF func(dst []float64, scale float64, field *[64]uint32, pos int) int
+
+	// RotateDecayComplexF32 rotates and damps a bank of complex oscillators in place.
+	// For each i: re[i], im[i] = decay[i] * (re[i]*cosW[i] - im[i]*sinW[i]),
+	//                              decay[i] * (re[i]*sinW[i] + im[i]*cosW[i])
+	// All slices must have equal length.
+	RotateDecayComplexF32 func(re, im, cosW, sinW, decay []float32)
+
+	// RotateDecayAccumulateF32 updates oscillator state and accumulates the weighted real part.
+	// For each i: re[i], im[i] are rotated and decayed as in RotateDecayComplexF32,
+	// then dst[i] += gain[i] * re[i] (the updated real part).
+	// All slices must have equal length.
+	RotateDecayAccumulateF32 func(dst []float32, re, im, cosW, sinW, decay, gain []float32)
 }
 
 // OpRegistry manages the registration and lookup of vecmath implementation variants.
@@ -140,6 +152,30 @@ func (r *OpRegistry) Lookup(features cpu.Features) *OpEntry {
 	}
 
 	return nil // Should never happen if generic fallback is registered
+}
+
+// LookupFunc finds the highest-priority compatible entry for which the predicate returns true.
+// This is useful for operations not yet implemented in all backends (e.g., float32 ops
+// may only exist in the generic backend initially).
+func (r *OpRegistry) LookupFunc(features cpu.Features, predicate func(*OpEntry) bool) *OpEntry {
+	r.mu.Lock()
+	if !r.sorted {
+		r.sortByPriority()
+		r.sorted = true
+	}
+	r.mu.Unlock()
+
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for i := range r.entries {
+		entry := &r.entries[i]
+		if cpu.Supports(features, entry.SIMDLevel) && predicate(entry) {
+			return entry
+		}
+	}
+
+	return nil
 }
 
 // sortByPriority sorts entries by priority in descending order.
