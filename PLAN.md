@@ -136,7 +136,7 @@ These tickets are intended to be executed before `algo-dsp` lands the high-level
   - Scope: NEON implementation for arm64 targets.
   - Acceptance: parity tests pass; benchmark speedup on arm64 NEON.
   - Depends on: `VEC-302`, `VEC-303`.
-- [ ] `VEC-307` — Modal-kernel benchmark matrix + baselines.
+- [x] `VEC-307` — Modal-kernel benchmark matrix + baselines.
   - Scope: benchmark suite for modal sizes 8/16/24/32 and block 128/256.
   - Acceptance: baseline table committed (Go version, CPU, date).
   - Depends on: `VEC-302`.
