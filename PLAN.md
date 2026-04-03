@@ -132,7 +132,7 @@ These tickets are intended to be executed before `algo-dsp` lands the high-level
   - Scope: SSE2 implementation for non-AVX2 amd64 targets.
   - Acceptance: parity tests pass; benchmark shows non-regression vs generic.
   - Depends on: `VEC-302`, `VEC-303`.
-- [ ] `VEC-306` — arm64 NEON backend for rotate/accumulate kernels.
+- [x] `VEC-306` — arm64 NEON backend for rotate/accumulate kernels.
   - Scope: NEON implementation for arm64 targets.
   - Acceptance: parity tests pass; benchmark speedup on arm64 NEON.
   - Depends on: `VEC-302`, `VEC-303`.
