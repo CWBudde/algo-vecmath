@@ -124,7 +124,7 @@ These tickets are intended to be executed before `algo-dsp` lands the high-level
   - Scope: update state and accumulate weighted real-part contribution.
   - Acceptance: parity tests vs scalar composition; zero allocations.
   - Depends on: `VEC-302`.
-- [ ] `VEC-304` — amd64 AVX2 backend for rotate/accumulate kernels.
+- [x] `VEC-304` — amd64 AVX2 backend for rotate/accumulate kernels.
   - Scope: assembly-backed or vectorized backend for AVX2 path.
   - Acceptance: microbench speedup vs generic on AVX2 machine; parity tests pass.
   - Depends on: `VEC-302`, `VEC-303`.

@@ -43,5 +43,9 @@ func init() {
 		// Dither operations
 		GenerateTPDF:  GenerateTPDF,
 		AddDitherTPDF: AddDitherTPDF,
+
+		// Modal oscillator operations (float32)
+		RotateDecayComplexF32:    RotateDecayComplexF32,
+		RotateDecayAccumulateF32: RotateDecayAccumulateF32,
 	})
 }
