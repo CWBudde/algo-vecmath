@@ -128,7 +128,7 @@ These tickets are intended to be executed before `algo-dsp` lands the high-level
   - Scope: assembly-backed or vectorized backend for AVX2 path.
   - Acceptance: microbench speedup vs generic on AVX2 machine; parity tests pass.
   - Depends on: `VEC-302`, `VEC-303`.
-- [ ] `VEC-305` — amd64 SSE2 fallback backend for rotate/accumulate kernels.
+- [x] `VEC-305` — amd64 SSE2 fallback backend for rotate/accumulate kernels.
   - Scope: SSE2 implementation for non-AVX2 amd64 targets.
   - Acceptance: parity tests pass; benchmark shows non-regression vs generic.
   - Depends on: `VEC-302`, `VEC-303`.
