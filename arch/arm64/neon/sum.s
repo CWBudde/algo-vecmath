@@ -3,55 +3,42 @@
 #include "textflag.h"
 
 // func sumNEON(x []float64) float64
+// Two independent accumulators over FLDPD pairs break the FP dependency
+// chain.
 TEXT ·sumNEON(SB), NOSPLIT, $0-32
 	MOVD x_base+0(FP), R0
 	MOVD x_len+8(FP), R1
 
-	// Check if we have at least 2 elements for NEON
+	FMOVD $0.0, F0            // accumulator (even elements)
+	FMOVD $0.0, F1            // accumulator (odd elements)
+
 	CMP $2, R1
-	BLT scalar_init
+	BLT tail
 
-	// Initialize accumulator to zero
-	VEOR V0.B16, V0.B16, V0.B16
+	ANDS $1, R1, R5           // R5 = len % 2
+	LSR  $1, R1, R4           // R4 = len / 2
 
-	// Process 2 elements at a time with NEON
-	CMP $2, R1
-	BLT reduce
+pair_loop:
+	FLDPD (R0), (F2, F3)      // x[i], x[i+1]
+	FADDD F2, F0, F0          // F0 += x[i]
+	FADDD F3, F1, F1          // F1 += x[i+1]
+	ADD $16, R0
+	SUBS $1, R4
+	BNE pair_loop
 
-vec_loop:
-	VLD1.P 16(R0), [V1.D2]
-	VFADDD V1.D2, V0.D2, V0.D2
-	SUB $2, R1
-	CMP $2, R1
-	BGE vec_loop
+	FADDD F1, F0, F0          // combine accumulators
+	CBZ R5, done
 
-reduce:
-	// Horizontal reduction: sum V0.D[0] + V0.D[1]
-	FMOVD V0.D[0], F2
-	FMOVD V0.D[1], F3
-	FADDD F3, F2, F2
+	FMOVD (R0), F2            // remaining element
+	FADDD F2, F0, F0
+	B done
 
-	// Handle remaining element if any
+tail:
+	// len < 2: zero or one element
 	CBZ R1, done
-
-	FMOVD (R0), F3
-	FADDD F3, F2, F2
+	FMOVD (R0), F2
+	FADDD F2, F0, F0
 
 done:
-	FMOVD F2, ret+24(FP)
-	RET
-
-scalar_init:
-	// Initialize scalar accumulator
-	FMOVD $0, F2
-
-	// Process all elements with scalar code
-scalar_loop:
-	FMOVD (R0), F3
-	FADDD F3, F2, F2
-	ADD $8, R0
-	SUB $1, R1
-	CBNZ R1, scalar_loop
-
-	FMOVD F2, ret+24(FP)
+	FMOVD F0, ret+24(FP)
 	RET

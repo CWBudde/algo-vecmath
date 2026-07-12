@@ -3,63 +3,47 @@
 #include "textflag.h"
 
 // func dotProductNEON(a, b []float64) float64
+// Two independent accumulators over FLDPD pairs break the FP dependency
+// chain; FMADDD fuses each multiply-accumulate.
 TEXT ·dotProductNEON(SB), NOSPLIT, $0-56
 	MOVD a_base+0(FP), R0
 	MOVD b_base+24(FP), R1
 	MOVD a_len+8(FP), R2
 
-	// Check if we have at least 2 elements for NEON
+	FMOVD $0.0, F0            // accumulator (even elements)
+	FMOVD $0.0, F1            // accumulator (odd elements)
+
 	CMP $2, R2
-	BLT scalar_init
+	BLT tail
 
-	// Initialize accumulator to zero
-	VEOR V0.B16, V0.B16, V0.B16
+	ANDS $1, R2, R5           // R5 = len % 2
+	LSR  $1, R2, R4           // R4 = len / 2
 
-	// Process 2 elements at a time with NEON
-	CMP $2, R2
-	BLT reduce
+pair_loop:
+	FLDPD (R0), (F2, F3)      // a[i], a[i+1]
+	FLDPD (R1), (F4, F5)      // b[i], b[i+1]
+	FMADDD F4, F0, F2, F0     // F0 += a[i] * b[i]
+	FMADDD F5, F1, F3, F1     // F1 += a[i+1] * b[i+1]
+	ADD $16, R0
+	ADD $16, R1
+	SUBS $1, R4
+	BNE pair_loop
 
-vec_loop:
-	VLD1.P 16(R0), [V1.D2]
-	VLD1.P 16(R1), [V2.D2]
-	VFMULD V2.D2, V1.D2, V1.D2
-	VFADDD V1.D2, V0.D2, V0.D2
-	SUB $2, R2
-	CMP $2, R2
-	BGE vec_loop
+	FADDD F1, F0, F0          // combine accumulators
+	CBZ R5, done
 
-reduce:
-	// Horizontal reduction: sum V0.D[0] + V0.D[1]
-	FMOVD V0.D[0], F3
-	FMOVD V0.D[1], F4
-	FADDD F4, F3, F3
+	FMOVD (R0), F2            // remaining element
+	FMOVD (R1), F4
+	FMADDD F4, F0, F2, F0
+	B done
 
-	// Handle remaining element if any
+tail:
+	// len < 2: zero or one element
 	CBZ R2, done
-
-	FMOVD (R0), F4
-	FMOVD (R1), F5
-	FMULD F5, F4, F4
-	FADDD F4, F3, F3
+	FMOVD (R0), F2
+	FMOVD (R1), F4
+	FMADDD F4, F0, F2, F0
 
 done:
-	FMOVD F3, ret+48(FP)
-	RET
-
-scalar_init:
-	// Initialize scalar accumulator
-	FMOVD $0, F3
-
-	// Process all elements with scalar code
-scalar_loop:
-	FMOVD (R0), F4
-	FMOVD (R1), F5
-	FMULD F5, F4, F4
-	FADDD F4, F3, F3
-	ADD $8, R0
-	ADD $8, R1
-	SUB $1, R2
-	CBNZ R2, scalar_loop
-
-	FMOVD F3, ret+48(FP)
+	FMOVD F0, ret+48(FP)
 	RET

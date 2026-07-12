@@ -4,7 +4,7 @@
 
 // func powerNEON(dst, re, im []float64)
 // Computes power (magnitude squared): dst[i] = re[i]^2 + im[i]^2
-// Uses NEON to process 2 float64 values at once
+// Processes 2 float64 per iteration via FLDPD/FSTPD paired loads/stores.
 TEXT ·powerNEON(SB), NOSPLIT, $0-72
 	MOVD dst_base+0(FP), R0    // dst.data
 	MOVD re_base+24(FP), R1    // re.data
@@ -14,26 +14,28 @@ TEXT ·powerNEON(SB), NOSPLIT, $0-72
 	CMP  $2, R3
 	BLT  power_scalar
 
-	MOVD R3, R4
-	LSR  $1, R4                // R4 = count / 2 (number of NEON iterations)
-	AND  $1, R3, R3            // R3 = count % 2 (remainder for scalar)
+	AND  $1, R3, R5            // R5 = count % 2 (remainder for scalar)
+	LSR  $1, R3, R4            // R4 = count / 2 (pairs)
 
-power_neon_loop:
-	VLD1 (R1), [V0.D2]         // Load 2 float64 from re
-	VLD1 (R2), [V1.D2]         // Load 2 float64 from im
-	FMUL V0.D2, V0.D2, V0.D2   // V0 = re^2
-	FMUL V1.D2, V1.D2, V1.D2   // V1 = im^2
-	FADD V1.D2, V0.D2, V0.D2   // V0 = re^2 + im^2
-	VST1 [V0.D2], (R0)         // Store to dst
+power_pair_loop:
+	FLDPD (R1), (F0, F1)       // re[i], re[i+1]
+	FLDPD (R2), (F2, F3)       // im[i], im[i+1]
+	FMULD F0, F0, F0           // F0 = re[i]^2
+	FMULD F2, F2, F2           // F2 = im[i]^2
+	FADDD F2, F0, F0           // F0 = re[i]^2 + im[i]^2
+	FMULD F1, F1, F1           // F1 = re[i+1]^2
+	FMULD F3, F3, F3           // F3 = im[i+1]^2
+	FADDD F3, F1, F1           // F1 = re[i+1]^2 + im[i+1]^2
+	FSTPD (F0, F1), (R0)       // Store pair to dst
 
 	ADD  $16, R1
 	ADD  $16, R2
 	ADD  $16, R0
 	SUBS $1, R4
-	BNE  power_neon_loop
+	BNE  power_pair_loop
 
-	CMP  $0, R3
-	BEQ  power_done
+	CBZ  R5, power_done
+	MOVD R5, R3                // Remainder count for scalar loop
 
 power_scalar:
 	FMOVD (R1), F0             // F0 = re[i]

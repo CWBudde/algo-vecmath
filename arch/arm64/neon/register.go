@@ -45,8 +45,11 @@ func init() {
 		GenerateTPDF:  GenerateTPDF,
 		AddDitherTPDF: AddDitherTPDF,
 
-		// Modal oscillator operations (float32)
-		RotateDecayComplexF32:    RotateDecayComplexF32,
-		RotateDecayAccumulateF32: RotateDecayAccumulateF32,
+		// Modal oscillator operations (float32) are intentionally not
+		// registered: the Go assembler lacks float32 vector arithmetic
+		// mnemonics, and a scalar assembly version cannot match the
+		// FMA contraction the compiler applies to the generic Go code
+		// (observable under cancellation). arm64 dispatches these to
+		// the generic implementation.
 	})
 }
