@@ -24,7 +24,7 @@ TEXT ·maxAbsNEON(SB), NOSPLIT, $0-32
 	VMOV V0.D[0], R3
 	VMOV V0.D[1], R4
 	CMP R4, R3
-	CSEL CS, R4, R3, R3
+	CSEL CS, R3, R4, R3
 
 	ANDS $1, R1, R5 // tail = len % 2
 	LSR $1, R1, R2  // pairs = len / 2
@@ -37,11 +37,11 @@ vec_loop:
 
 	VMOV V0.D[0], R4
 	CMP R4, R3
-	CSEL CS, R4, R3, R3
+	CSEL CS, R3, R4, R3
 
 	VMOV V0.D[1], R4
 	CMP R4, R3
-	CSEL CS, R4, R3, R3
+	CSEL CS, R3, R4, R3
 
 	SUB $1, R2
 	CBNZ R2, vec_loop
@@ -53,7 +53,7 @@ vec_loop:
 	MOVD $0x7fffffffffffffff, R9
 	AND R9, R4, R4
 	CMP R4, R3
-	CSEL CS, R4, R3, R3
+	CSEL CS, R3, R4, R3
 
  done_bits:
 	MOVD R3, ret+24(FP)

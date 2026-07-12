@@ -53,7 +53,7 @@ gen_loop:
 	AND  $63, R2
 
 	// --- Convert sum to float64, scale, store ---
-	SCVTFWS R6, F0             // F0 = float64(int32 sum)
+	SCVTFWD R6, F0             // F0 = float64(int32 sum)
 	FMULD   F7, F0, F0         // F0 *= scale
 	FMOVD   F0, (R0)           // store
 	ADD     $8, R0
@@ -106,7 +106,7 @@ add_loop:
 	AND  $63, R2
 
 	// --- Convert, scale, ADD to dst ---
-	SCVTFWS R6, F0
+	SCVTFWD R6, F0
 	FMULD   F7, F0, F0
 	FMOVD   (R0), F1           // load existing dst
 	FADDD   F1, F0, F0         // add dither
