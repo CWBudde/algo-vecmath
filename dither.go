@@ -9,7 +9,7 @@ import (
 
 // tpdfNorm normalizes the int32 sum range to [-1, +1].
 // TPDF sums two int32 values each shifted right by 1, giving a range of approximately [-2^31, 2^31].
-const tpdfNorm = 1.0 / float64(int64(1) << 31)
+const tpdfNorm = 1.0 / float64(int64(1)<<31)
 
 var (
 	generateTPDFImpl  func([]float64, float64, *[64]uint32, int) int

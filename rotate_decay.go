@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	rotateDecayComplexF32Impl     func([]float32, []float32, []float32, []float32, []float32)
-	rotateDecayAccumulateF32Impl  func([]float32, []float32, []float32, []float32, []float32, []float32, []float32)
-	rotateDecayInitOnce           sync.Once
+	rotateDecayComplexF32Impl    func([]float32, []float32, []float32, []float32, []float32)
+	rotateDecayAccumulateF32Impl func([]float32, []float32, []float32, []float32, []float32, []float32, []float32)
+	rotateDecayInitOnce          sync.Once
 )
 
 func initRotateDecayOperations() {
