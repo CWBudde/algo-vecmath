@@ -46,11 +46,15 @@ func init() {
 		GenerateTPDF:  GenerateTPDF,
 		AddDitherTPDF: AddDitherTPDF,
 
-		// Modal oscillator operations (float32) are intentionally not
-		// registered: the Go assembler lacks float32 vector arithmetic
-		// mnemonics, and a scalar assembly version cannot match the
-		// FMA contraction the compiler applies to the generic Go code
-		// (observable under cancellation). arm64 dispatches these to
-		// the generic implementation.
+		// Modal oscillator operations (float32) are not registered here, so
+		// arm64 dispatches them to the generic implementation.
+		//
+		// The reason is narrower than it might look. A *scalar* assembly
+		// version is ruled out: it cannot match the FMA contraction the
+		// compiler applies to the generic Go code, which is observable under
+		// cancellation. A vector version is not ruled out -- VFMLA does accept
+		// the S4 arrangement, giving 4-lane float32 FMA, and being an FMA it
+		// would match that contraction rather than diverge from it. It simply
+		// has not been written or measured yet.
 	})
 }
