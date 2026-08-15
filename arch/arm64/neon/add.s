@@ -11,13 +11,11 @@ TEXT ·addBlockNEON(SB), NOSPLIT, $0-72
 	MOVD b_base+48(FP), R2    // b.data
 	MOVD dst_len+8(FP), R3    // len(dst)
 
-	CMP $2, R3
-	BLT addblock_scalar
-
-	// R4 = len / 2 (pairs)
-	// R5 = len % 2 (remainder)
+	// R4 = len / 2 (pairs), R5 = len % 2 (tail).  Both must be computed
+	// before any branch to the tail, which counts R5 down to zero.
 	ANDS $1, R3, R5
-	LSR $1, R3, R4
+	LSR  $1, R3, R4
+	CBZ  R4, addblock_tail
 
 addblock_neon_loop:
 	// Load pair of float64 from a
@@ -36,6 +34,7 @@ addblock_neon_loop:
 	SUBS $1, R4
 	BNE addblock_neon_loop
 
+addblock_tail:
 	CBZ R5, addblock_done
 
 addblock_scalar:
@@ -60,11 +59,11 @@ TEXT ·addBlockInPlaceNEON(SB), NOSPLIT, $0-48
 	MOVD src_base+24(FP), R1  // src.data
 	MOVD dst_len+8(FP), R3    // len(dst)
 
-	CMP $2, R3
-	BLT addinplace_scalar
-
+	// R4 = len / 2 (pairs), R5 = len % 2 (tail).  Both must be computed
+	// before any branch to the tail, which counts R5 down to zero.
 	ANDS $1, R3, R5
-	LSR $1, R3, R4
+	LSR  $1, R3, R4
+	CBZ  R4, addinplace_tail
 
 addinplace_neon_loop:
 	FLDPD (R0), (F0, F1)      // Load pair from dst
@@ -78,6 +77,7 @@ addinplace_neon_loop:
 	SUBS $1, R4
 	BNE addinplace_neon_loop
 
+addinplace_tail:
 	CBZ R5, addinplace_done
 
 addinplace_scalar:

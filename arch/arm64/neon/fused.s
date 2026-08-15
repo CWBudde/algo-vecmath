@@ -12,11 +12,11 @@ TEXT ·addMulBlockNEON(SB), NOSPLIT, $0-80
 	MOVD  dst_len+8(FP), R3
 	FMOVD scale+72(FP), F4    // scale in F4
 
-	CMP $2, R3
-	BLT addmul_scalar
-
+	// R4 = len / 2 (pairs), R5 = len % 2 (tail).  Both must be computed
+	// before any branch to the tail, which counts R5 down to zero.
 	ANDS $1, R3, R5
-	LSR $1, R3, R4
+	LSR  $1, R3, R4
+	CBZ  R4, addmul_tail
 
 addmul_neon_loop:
 	FLDPD (R1), (F0, F1)      // Load a[0], a[1]
@@ -33,6 +33,7 @@ addmul_neon_loop:
 	SUBS $1, R4
 	BNE addmul_neon_loop
 
+addmul_tail:
 	CBZ R5, addmul_done
 
 addmul_scalar:
@@ -60,11 +61,11 @@ TEXT ·mulAddBlockNEON(SB), NOSPLIT, $0-96
 	MOVD c_base+72(FP), R8
 	MOVD dst_len+8(FP), R3
 
-	CMP $2, R3
-	BLT muladd_scalar
-
+	// R4 = len / 2 (pairs), R5 = len % 2 (tail).  Both must be computed
+	// before any branch to the tail, which counts R5 down to zero.
 	ANDS $1, R3, R5
-	LSR $1, R3, R4
+	LSR  $1, R3, R4
+	CBZ  R4, muladd_tail
 
 muladd_neon_loop:
 	FLDPD (R1), (F0, F1)      // Load a[0], a[1]
@@ -83,6 +84,7 @@ muladd_neon_loop:
 	SUBS $1, R4
 	BNE muladd_neon_loop
 
+muladd_tail:
 	CBZ R5, muladd_done
 
 muladd_scalar:

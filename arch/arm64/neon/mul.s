@@ -11,11 +11,11 @@ TEXT ·mulBlockNEON(SB), NOSPLIT, $0-72
 	MOVD b_base+48(FP), R2    // b.data
 	MOVD dst_len+8(FP), R3    // len(dst)
 
-	CMP $2, R3
-	BLT mulblock_scalar
-
+	// R4 = len / 2 (pairs), R5 = len % 2 (tail).  Both must be computed
+	// before any branch to the tail, which counts R5 down to zero.
 	ANDS $1, R3, R5
-	LSR $1, R3, R4
+	LSR  $1, R3, R4
+	CBZ  R4, mulblock_tail
 
 mulblock_neon_loop:
 	FLDPD (R1), (F0, F1)
@@ -30,6 +30,7 @@ mulblock_neon_loop:
 	SUBS $1, R4
 	BNE mulblock_neon_loop
 
+mulblock_tail:
 	CBZ R5, mulblock_done
 
 mulblock_scalar:
@@ -54,11 +55,11 @@ TEXT ·mulBlockInPlaceNEON(SB), NOSPLIT, $0-48
 	MOVD src_base+24(FP), R1
 	MOVD dst_len+8(FP), R3
 
-	CMP $2, R3
-	BLT mulinplace_scalar
-
+	// R4 = len / 2 (pairs), R5 = len % 2 (tail).  Both must be computed
+	// before any branch to the tail, which counts R5 down to zero.
 	ANDS $1, R3, R5
-	LSR $1, R3, R4
+	LSR  $1, R3, R4
+	CBZ  R4, mulinplace_tail
 
 mulinplace_neon_loop:
 	FLDPD (R0), (F0, F1)
@@ -72,6 +73,7 @@ mulinplace_neon_loop:
 	SUBS $1, R4
 	BNE mulinplace_neon_loop
 
+mulinplace_tail:
 	CBZ R5, mulinplace_done
 
 mulinplace_scalar:
