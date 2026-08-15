@@ -54,11 +54,16 @@ type OpEntry struct {
 	// ScaleBlockInPlace performs in-place element-wise scaling: dst[i] *= scalar.
 	ScaleBlockInPlace func(dst []float64, scalar float64)
 
-	// AddMulBlock performs fused add-multiply: dst[i] = a[i] + b[i] * scalar.
+	// AddMulBlock performs fused add-multiply: dst[i] = (a[i] + b[i]) * scalar.
 	AddMulBlock func(dst, a, b []float64, scalar float64)
 
 	// MulAddBlock performs fused multiply-add: dst[i] = a[i] * b[i] + c[i].
 	MulAddBlock func(dst, a, b, c []float64)
+
+	// AddScaledBlockInPlace accumulates a scaled block: dst[i] += src[i] * scalar.
+	// This is the AXPY primitive; it does the work of ScaleBlock followed by
+	// AddBlockInPlace in a single pass, without a temporary buffer.
+	AddScaledBlockInPlace func(dst, src []float64, scalar float64)
 
 	// MaxAbs returns the maximum absolute value in the slice: max(|x[i]|).
 	MaxAbs func(x []float64) float64

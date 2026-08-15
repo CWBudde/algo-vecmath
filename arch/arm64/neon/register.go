@@ -29,8 +29,9 @@ func init() {
 		ScaleBlockInPlace: ScaleBlockInPlace,
 
 		// Fused operations
-		AddMulBlock: AddMulBlock,
-		MulAddBlock: MulAddBlock,
+		AddMulBlock:           AddMulBlock,
+		MulAddBlock:           MulAddBlock,
+		AddScaledBlockInPlace: AddScaledBlockInPlace,
 
 		// Reduction operations
 		MaxAbs:     MaxAbs,

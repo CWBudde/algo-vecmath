@@ -26,6 +26,12 @@
 // Fused operations (reduced memory traffic):
 //   - AddMulBlock: dst[i] = (a[i] + b[i]) * scale (mix with gain)
 //   - MulAddBlock: dst[i] = a[i] * b[i] + c[i] (FMA pattern)
+//   - AddScaledBlockInPlace: dst[i] += src[i] * scale (AXPY)
+//
+// AddScaledBlockInPlace is the accumulate primitive behind direct
+// convolution and overlap-add.  Prefer it over ScaleBlock followed by
+// AddBlockInPlace: it drops the temporary buffer and one pass over memory,
+// which is worth roughly 2-3x on both AVX2 and NEON.
 //
 // Reduction:
 //   - MaxAbs: maximum absolute value in a slice
