@@ -7,15 +7,29 @@ import (
 	"testing"
 )
 
-// reductionSizes deliberately straddles the unroll-8 boundary of the reduction
-// kernels (and the unroll-4 boundary of the elementwise ones) from every side,
-// because the tail counter is exactly where this backend has gone wrong before:
-// commit 3c3de3b fixed an uninitialised tail counter that wrote out of bounds
-// for len == 1.
+// reductionSizes deliberately straddles every boundary in these kernels from
+// both sides, because the tail counter is where this backend has gone wrong
+// before: commit 3c3de3b fixed an uninitialised tail counter that wrote out of
+// bounds for len == 1.
+//
+// Three boundaries matter, and all three need lengths on either side:
+//
+//   - the unroll-2 pair loop of the scalar path (len % 2)
+//   - the switch from the scalar path to the vector one, which sits at a
+//     different length in each kernel: 128 for dotProductNEON, 192 for sumNEON
+//   - the unroll-8 octet loop of the vector path (len % 8)
+//
+// The last is easy to miss. It is only reachable past the switch, so a sweep
+// that stops at a round number tests it not at all -- 1000 % 8 is 0, which
+// would have left the vector path's scalar tail completely uncovered.
 var reductionSizes = []int{
 	0, 1, 2, 3, 4, 5, 6, 7,
 	8, 9, 10, 15, 16, 17, 23, 24, 25,
-	31, 32, 33, 63, 64, 65, 100, 1000,
+	31, 32, 33, 63, 64, 65, 100,
+	126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137,
+	190, 191, 192, 193, 194, 199, 200, 201,
+	255, 256, 257, 511, 512, 513,
+	1000, 1001, 1023, 1024, 1025,
 }
 
 // TestSum_NEON checks the kernel on values that are exactly representable, so
@@ -157,3 +171,52 @@ func closeEnough(got, want float64) bool {
 
 	return math.Abs(got-want) <= 1e-12*scale
 }
+
+// reductionBenchSizes is deliberately dense around the length at which sumNEON
+// and dotProductNEON switch from the scalar pair loop to the vector one, so
+// that the threshold can be placed from measurement rather than guessed.
+var reductionBenchSizes = []int{16, 32, 48, 64, 96, 128, 192, 256, 512, 1024, 4096}
+
+func BenchmarkSum_NEON_Direct(b *testing.B) {
+	for _, n := range reductionBenchSizes {
+		b.Run(sizeStr(n), func(b *testing.B) {
+			x := make([]float64, n)
+			for i := range x {
+				x[i] = float64(i)
+			}
+
+			b.SetBytes(int64(n) * 8)
+			b.ReportAllocs()
+			b.ResetTimer()
+
+			for i := 0; i < b.N; i++ {
+				sink = Sum(x)
+			}
+		})
+	}
+}
+
+func BenchmarkDotProduct_NEON_Direct(b *testing.B) {
+	for _, n := range reductionBenchSizes {
+		b.Run(sizeStr(n), func(b *testing.B) {
+			x := make([]float64, n)
+			y := make([]float64, n)
+
+			for i := range x {
+				x[i] = float64(i)
+				y[i] = float64(i) * 0.5
+			}
+
+			b.SetBytes(int64(n) * 8 * 2)
+			b.ReportAllocs()
+			b.ResetTimer()
+
+			for i := 0; i < b.N; i++ {
+				sink = DotProduct(x, y)
+			}
+		})
+	}
+}
+
+// sink keeps the benchmarked calls from being optimised away.
+var sink float64
